@@ -17,7 +17,7 @@ def convert_types(obj):
 
 def run_eda(df: pd.DataFrame) -> dict:
     numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-    categorical_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
+    categorical_cols = df.select_dtypes(include=["str", "category"]).columns.tolist()
 
     shape = df.shape
     missing = df.isnull().sum()
