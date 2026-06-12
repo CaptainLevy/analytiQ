@@ -46,7 +46,8 @@ def _histogram(df: pd.DataFrame, numeric_col: str, **kwargs) -> dict:
     fig = px.histogram(
         df, x=numeric_col,
         title=f"Distribution of {numeric_col}",
-        color_discrete_sequence=["#636EFA"]
+        color_discrete_sequence=["#636EFA"],
+        nbins=50
     )
     fig.update_layout(bargap=0.1)
     return _to_json(fig)

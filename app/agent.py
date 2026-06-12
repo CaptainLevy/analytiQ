@@ -9,6 +9,7 @@ from app.tools.eda import run_eda
 from app.tools.stats import run_stats
 from app.tools.viz import run_viz
 from app.prompts.system import SYSTEM_PROMPT
+from app.tools.stats import run_stats, run_aggregation
 
 load_dotenv()
 
@@ -54,13 +55,14 @@ def parse_tool_call(response_text: str) -> dict | None:
 
 
 def execute_tool(tool_name: str, params: dict, df: pd.DataFrame) -> dict:
-    """Routes tool calls to the correct function."""
     if tool_name == "run_eda":
         return run_eda(df)
     elif tool_name == "run_stats":
         return run_stats(df, **params)
     elif tool_name == "run_viz":
         return run_viz(df, **params)
+    elif tool_name == "run_aggregation":
+        return run_aggregation(df, **params)
     else:
         return {"error": f"Unknown tool: {tool_name}"}
 
@@ -93,6 +95,10 @@ You have access to these tools. Use them by outputting a <tool_call> block:
 3. run_viz - Create a visualization.
    Params: chart_type (histogram/bar/scatter/correlation_heatmap/boxplot), plus relevant col names
    Example: <tool_call>{{"tool": "run_viz", "params": {{"chart_type": "histogram", "numeric_col": "sales"}}}}</tool_call>
+
+4. run_aggregation - Group by a categorical column and aggregate a numeric column.
+   Params: group_col, numeric_col, agg (mean/sum/max/min)
+   Example: <tool_call>{{"tool": "run_aggregation", "params": {{"group_col": "region", "numeric_col": "sales", "agg": "mean"}}}}</tool_call>
 
 If no tool is needed, just answer directly.
 

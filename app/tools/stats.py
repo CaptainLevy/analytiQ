@@ -133,3 +133,22 @@ def _normality(df: pd.DataFrame, numeric_col: str, **kwargs) -> dict:
             f"{numeric_col} does NOT appear normally distributed (p={round(float(p_value), 4)})"
         )
     }
+
+def run_aggregation(df: pd.DataFrame, group_col: str, 
+                    numeric_col: str, agg: str = "mean") -> dict:
+    """Simple group-by aggregation."""
+    if group_col not in df.columns or numeric_col not in df.columns:
+        return {"error": "Column not found"}
+
+    grouped = df.groupby(group_col)[numeric_col].agg(agg).round(2)
+    sorted_result = grouped.sort_values(ascending=False)
+
+    return {
+        "analysis": "aggregation",
+        "group_col": group_col,
+        "numeric_col": numeric_col,
+        "aggregation": agg,
+        "results": {str(k): float(v) for k, v in sorted_result.items()},
+        "top_group": str(sorted_result.index[0]),
+        "top_value": float(sorted_result.iloc[0])
+    }
