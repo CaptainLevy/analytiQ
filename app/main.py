@@ -127,8 +127,9 @@ else:
                 fig = pio.from_json(result["chart_json"])
                 st.plotly_chart(fig, use_container_width=True)
 
-            if result.get("tool_used"):
-                st.caption(f"🔧 Tool used: `{result['tool_used']}`")
+            if result.get("tools_used"):
+                tools_str = " → ".join([f"`{t}`" for t in result["tools_used"]])
+                st.caption(f"🔧 Tools used: {tools_str}")
 
         # Save assistant response to history
         st.session_state.chat_history.append({
