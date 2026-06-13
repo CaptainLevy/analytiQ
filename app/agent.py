@@ -30,8 +30,14 @@ class AgentState(TypedDict):
 # ── LLM ───────────────────────────────────────────────────────────────────────
 
 def load_llm():
+    try:
+        import streamlit as st
+        api_key = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
+    except Exception:
+        api_key = os.getenv("GROQ_API_KEY")
+    
     return ChatGroq(
-        api_key=os.getenv("GROQ_API_KEY"),
+        api_key=api_key,
         model="llama-3.3-70b-versatile",
         temperature=0
     )
