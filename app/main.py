@@ -118,11 +118,19 @@ else:
         # Run agent
         with st.chat_message("assistant"):
             with st.spinner("Analysing..."):
-                result = run_agent(
-                    user_query=user_input,
-                    df=df,
-                    chat_history=st.session_state.chat_history[:-1]
-                )
+                try:
+                    result = run_agent(
+                        user_query=user_input,
+                        df=df,
+                        chat_history=st.session_state.chat_history[:-1]
+                    )
+                except Exception as e:
+                    error_msg = str(e)
+                    if "rate_limit" in error_msg.lower() or "429" in error_msg:
+                        st.warning("⚠️ Groq API rate limit reached. Please wait a minute and try again.")
+                    else:
+                        st.error(f"Something went wrong: {error_msg}")
+                    st.stop()
 
             st.markdown(result["text"])
 
