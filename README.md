@@ -1,5 +1,8 @@
 # 📊 AnalytiQ — Autonomous Data Analyst
 
+[![Live Demo](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://1analytiq.streamlit.app)
+[![GitHub](https://img.shields.io/badge/GitHub-CaptainLevy-black?logo=github)](https://github.com/CaptainLevy/analytiQ)
+
 ![AnalytiQ Demo](demo.gif)
 
 > Upload a dataset. Ask questions in plain English. Get statistically rigorous answers.
@@ -30,12 +33,12 @@ User Query
 ┌─────────────────────────────────┐
 │         LangGraph Agent         │
 │                                 │
-│  ┌──────────┐  ┌─────────────┐ │
-│  │  Planner │→ │ Tool Router │ │
-│  └──────────┘  └──────┬──────┘ │
-│                        │        │
-│         ┌──────────────┼──────────────┐
-│         ▼              ▼              ▼
+│  ┌──────────┐  ┌─────────────┐  │
+│  │  Planner │→ │ Tool Router │  │
+│  └──────────┘  └──────┬──────┘  │
+│                       │         │
+│         ┌─────────────┼──────────────┐
+│         ▼             ▼              ▼
 │   ┌──────────┐  ┌──────────┐  ┌──────────┐
 │   │ run_eda  │  │run_stats │  │ run_viz  │
 │   │  Pandas  │  │  SciPy   │  │  Plotly  │
