@@ -1,5 +1,7 @@
 # 📊 AnalytiQ — Autonomous Data Analyst
 
+![AnalytiQ Demo](demo.gif)
+
 > Upload a dataset. Ask questions in plain English. Get statistically rigorous answers.
 
 AnalytiQ is an agentic AI system that lets non-technical users perform professional-grade data analysis through natural language. It combines a multi-step LangGraph agent with classical statistical methods — so the LLM handles reasoning while trusted Python libraries handle all computation.
