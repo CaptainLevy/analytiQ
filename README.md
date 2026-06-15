@@ -1,7 +1,6 @@
 # 📊 AnalytiQ — Autonomous Data Analyst
 
-[![Live Demo](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://1analytiq.streamlit.app)
-[![GitHub](https://img.shields.io/badge/GitHub-CaptainLevy-black?logo=github)](https://github.com/CaptainLevy/analytiQ)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Streamlit-FF4B4B?logo=streamlit)](https://1analytiq.streamlit.app)
 
 ![AnalytiQ Demo](demo.gif)
 
