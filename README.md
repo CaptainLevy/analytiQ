@@ -1,6 +1,6 @@
 # 📊 AnalytiQ — Autonomous Data Analyst
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Streamlit-FF4B4B?logo=streamlit)](https://1analytiq.streamlit.app)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Streamlit-FF4B4B?logo=streamlit)](https://1analytiq.streamlit.app) 👈🏻 Live Demo link
 
 ![AnalytiQ Demo](demo.gif)
 
