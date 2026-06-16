@@ -5,18 +5,94 @@ import plotly.graph_objects as go
 from plotly.utils import PlotlyJSONEncoder
 import json
 
+def _line_chart(df: pd.DataFrame, x_col: str, y_col: str,
+                color_col: str = None, **kwargs) -> dict:
+    if x_col not in df.columns or y_col not in df.columns:
+        return {"error": "Column not found"}
+
+    sorted_df = df.sort_values(x_col)
+
+    fig = px.line(
+        sorted_df,
+        x=x_col,
+        y=y_col,
+        color=color_col if color_col and color_col in df.columns else None,
+        title=f"{y_col} over {x_col}",
+        markers=True
+    )
+    fig.update_layout(xaxis_title=x_col, yaxis_title=y_col)
+    return _to_json(fig)
+
+
+def _pie_chart(df: pd.DataFrame, category_col: str = None,
+               group_col: str = None, value_col: str = None, 
+               numeric_col: str = None, **kwargs) -> dict:
+    
+    # Accept either category_col or group_col
+    col = category_col or group_col
+    val = value_col or numeric_col
+    
+    if not col:
+        return {"error": "Please provide a category column"}
+    if col not in df.columns:
+        return {"error": f"Column '{col}' not found"}
+
+    if val and val in df.columns:
+        grouped = df.groupby(col)[val].sum().reset_index()
+        fig = px.pie(
+            grouped,
+            names=col,
+            values=val,
+            title=f"{val} by {col}"
+        )
+    else:
+        counts = df[col].value_counts().reset_index()
+        counts.columns = [col, "count"]
+        fig = px.pie(
+            counts,
+            names=col,
+            values="count",
+            title=f"Distribution of {col}"
+        )
+
+    fig.update_traces(textposition="inside", textinfo="percent+label")
+    return _to_json(fig)
 
 def run_viz(df: pd.DataFrame, chart_type: str, **kwargs) -> dict:
     """
-    Creates visualizations and returns them as JSON for Streamlit rendering.
-
-    Supported chart_type values:
-    - histogram: distribution of a numeric column
-    - bar: count or mean of a numeric col grouped by categorical col
-    - scatter: relationship between two numeric columns
-    - correlation_heatmap: heatmap of correlation matrix
-    - boxplot: distribution across groups
+    Creates visualizations. Normalizes parameter names before routing
+    so the LLM doesn't need to remember exact parameter names.
     """
+    # Normalize common parameter aliases
+    if "x" in kwargs and "x_col" not in kwargs:
+        kwargs["x_col"] = kwargs.pop("x")
+    if "y" in kwargs and "y_col" not in kwargs:
+        kwargs["y_col"] = kwargs.pop("y")
+    if "column" in kwargs and "numeric_col" not in kwargs:
+        kwargs["numeric_col"] = kwargs.pop("column")
+    if "value_col" in kwargs and "numeric_col" not in kwargs:
+        kwargs["numeric_col"] = kwargs.pop("value_col")
+    if "color" in kwargs and "color_col" not in kwargs:
+        kwargs["color_col"] = kwargs.pop("color")
+
+    # For line chart — if x_col not provided, try to find a date column
+    if chart_type == "line" and "x_col" not in kwargs:
+        date_cols = [col for col in df.columns 
+                    if pd.api.types.is_datetime64_any_dtype(df[col])]
+        if date_cols:
+            kwargs["x_col"] = date_cols[0]
+
+    # For line/scatter — if y_col not provided, use first numeric col
+    if chart_type in ["line", "scatter"] and "y_col" not in kwargs:
+        numeric_cols = df.select_dtypes(include="number").columns.tolist()
+        if numeric_cols:
+            kwargs["y_col"] = numeric_cols[0]
+
+    # For scatter — if x_col not provided, use second numeric col
+    if chart_type == "scatter" and "x_col" not in kwargs:
+        numeric_cols = df.select_dtypes(include="number").columns.tolist()
+        if len(numeric_cols) >= 2:
+            kwargs["x_col"] = numeric_cols[1]
 
     if chart_type == "histogram":
         return _histogram(df, **kwargs)
@@ -28,8 +104,14 @@ def run_viz(df: pd.DataFrame, chart_type: str, **kwargs) -> dict:
         return _correlation_heatmap(df, **kwargs)
     elif chart_type == "boxplot":
         return _boxplot(df, **kwargs)
+    elif chart_type == "line":
+        return _line_chart(df, **kwargs)
+    elif chart_type == "pie":
+        return _pie_chart(df, **kwargs)
+    elif chart_type == "pivot_heatmap":
+        return _pivot_heatmap(df, **kwargs)
     else:
-        return {"error": f"Unknown chart type: {chart_type}"}
+        return {"error": f"Unknown chart type: {chart_type}. Supported: histogram, bar, scatter, correlation_heatmap, boxplot, line, pie, pivot_heatmap"}
 
 
 def _to_json(fig) -> dict:

@@ -38,7 +38,7 @@ def load_llm():
     
     return ChatGroq(
         api_key=api_key,
-        model="llama-3.3-70b-versatile",
+        model="llama-3.1-8b-instant",
         temperature=0
     )
 
@@ -97,7 +97,7 @@ def create_tools(df: pd.DataFrame):
         color_col: str = ""
     ) -> dict:
         """Create a visualization.
-        chart_type: histogram | bar | scatter | correlation_heatmap | boxplot
+        chart_type: histogram | bar | scatter | correlation_heatmap | boxplot | line | pie
         numeric_col: for histogram and boxplot
         group_col: for bar chart and boxplot grouping
         x_col, y_col: for scatter plot

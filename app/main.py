@@ -9,6 +9,18 @@ import plotly.graph_objects as go
 
 from app.agent import run_agent
 
+def parse_dates(df: pd.DataFrame) -> pd.DataFrame:
+    """Auto-detect and parse date columns."""
+    for col in df.columns:
+        if df[col].dtype == object:
+            try:
+                parsed = pd.to_datetime(df[col], infer_datetime_format=True)
+                if parsed.notna().sum() > len(df) * 0.8:
+                    df[col] = parsed
+            except Exception:
+                pass
+    return df
+
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="AnalytiQ",
@@ -35,7 +47,7 @@ with st.sidebar:
     with tab1:
         uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
         if uploaded_file:
-            df = pd.read_csv(uploaded_file)
+            df = parse_dates(pd.read_csv(uploaded_file))
             st.session_state.df = df
             st.session_state.chat_history = []
             st.success(f"Loaded: {df.shape[0]} rows × {df.shape[1]} columns")
@@ -43,15 +55,15 @@ with st.sidebar:
     with tab2:
         st.markdown("Try a sample dataset:")
         if st.button("🛍️ Retail Sales"):
-            st.session_state.df = pd.read_csv("data/retail_sales.csv")
+            st.session_state.df = parse_dates(pd.read_csv("data/retail_sales.csv"))
             st.session_state.chat_history = []
             st.rerun()
         if st.button("👥 HR Attrition"):
-            st.session_state.df = pd.read_csv("data/hr_attrition.csv")
+            st.session_state.df = parse_dates(pd.read_csv("data/hr_attrition.csv"))
             st.session_state.chat_history = []
             st.rerun()
         if st.button("📣 Marketing Campaign"):
-            st.session_state.df = pd.read_csv("data/marketing_campaign.csv")
+            st.session_state.df = parse_dates(pd.read_csv("data/marketing_campaign.csv"))
             st.session_state.chat_history = []
             st.rerun()
 
