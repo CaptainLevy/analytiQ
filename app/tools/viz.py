@@ -110,6 +110,8 @@ def run_viz(df: pd.DataFrame, chart_type: str, **kwargs) -> dict:
         return _pie_chart(df, **kwargs)
     elif chart_type == "pivot_heatmap":
         return _pivot_heatmap(df, **kwargs)
+    elif chart_type == "pivot_heatmap":
+        return _pivot_heatmap(df, **kwargs)
     else:
         return {"error": f"Unknown chart type: {chart_type}. Supported: histogram, bar, scatter, correlation_heatmap, boxplot, line, pie, pivot_heatmap"}
 
@@ -199,5 +201,38 @@ def _boxplot(df: pd.DataFrame, numeric_col: str,
         x=group_col if group_col and group_col in df.columns else None,
         title=f"Boxplot of {numeric_col}" + (f" by {group_col}" if group_col else ""),
         color=group_col if group_col and group_col in df.columns else None
+    )
+    return _to_json(fig)
+
+def _pivot_heatmap(df: pd.DataFrame, row_col: str = None, 
+                   col_col: str = None, value_col: str = None,
+                   group_col: str = None, numeric_col: str = None,
+                   **kwargs) -> dict:
+    # Normalize parameter names
+    row = row_col or group_col
+    val = value_col or numeric_col
+
+    if not row or not col_col or not val:
+        return {"error": "Need row_col, col_col, and value_col for pivot heatmap"}
+    if row not in df.columns or col_col not in df.columns or val not in df.columns:
+        return {"error": "Column not found"}
+
+    pivot = df.pivot_table(
+        index=row,
+        columns=col_col,
+        values=val,
+        aggfunc="mean"
+    ).round(2)
+
+    fig = go.Figure(data=go.Heatmap(
+        z=pivot.values,
+        x=pivot.columns.tolist(),
+        y=pivot.index.tolist(),
+        colorscale="Blues",
+        text=pivot.values.round(0),
+        texttemplate="%{text}",
+    ))
+    fig.update_layout(
+        title=f"Mean {val} by {row} and {col_col}"
     )
     return _to_json(fig)

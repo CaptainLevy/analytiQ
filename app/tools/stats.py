@@ -152,3 +152,26 @@ def run_aggregation(df: pd.DataFrame, group_col: str,
         "top_group": str(sorted_result.index[0]),
         "top_value": float(sorted_result.iloc[0])
     }
+
+def run_topn(df: pd.DataFrame, group_col: str,
+             numeric_col: str, n: int = 5,
+             agg: str = "sum") -> dict:
+    """Returns top N groups by aggregated value."""
+    if group_col not in df.columns or numeric_col not in df.columns:
+        return {"error": "Column not found"}
+
+    grouped = df.groupby(group_col)[numeric_col].agg(agg).round(2)
+    top_n = grouped.nlargest(n)
+    bottom_n = grouped.nsmallest(n)
+
+    return {
+        "analysis": "top_n",
+        "group_col": group_col,
+        "numeric_col": numeric_col,
+        "n": n,
+        "aggregation": agg,
+        "top": {str(k): float(v) for k, v in top_n.items()},
+        "bottom": {str(k): float(v) for k, v in bottom_n.items()},
+        "top_group": str(top_n.index[0]),
+        "top_value": float(top_n.iloc[0])
+    }

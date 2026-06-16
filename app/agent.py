@@ -14,7 +14,7 @@ from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 
 from app.tools.eda import run_eda
-from app.tools.stats import run_stats, run_aggregation
+from app.tools.stats import run_stats, run_aggregation, run_topn
 from app.tools.viz import run_viz
 from app.prompts.system import SYSTEM_PROMPT
 
@@ -115,8 +115,25 @@ def create_tools(df: pd.DataFrame):
         if color_col:
             params["color_col"] = color_col
         return run_viz(df, **params)
+    @tool
+    def run_topn_tool(
+        group_col: str,
+        numeric_col: str,
+        n: int = 5,
+        agg: str = "sum"
+    ) -> dict:
+        """Get the top N or bottom N groups by aggregated value.
+        group_col: categorical column to group by
+        numeric_col: numeric column to aggregate
+        n: number of top results to return (default 5)
+        agg: sum | mean | max | min
+        Use this for questions like 'top 5 stores by sales' or
+        'which 3 categories have lowest profit'.
+        """
+        return run_topn(df, group_col, numeric_col, n, agg)
+    
 
-    return [run_eda_tool, run_stats_tool, run_aggregation_tool, run_viz_tool]
+    return [run_eda_tool, run_stats_tool, run_aggregation_tool, run_viz_tool, run_topn_tool]
 
 
 # ── Dataset Context ────────────────────────────────────────────────────────────
@@ -173,7 +190,7 @@ TOOL_NAME_MAP = {
     "run_eda_tool": "run_eda",
     "run_stats_tool": "run_stats",
     "run_aggregation_tool": "run_aggregation",
-    "run_viz_tool": "run_viz"
+    "run_viz_tool": "run_viz",
 }
 
 
