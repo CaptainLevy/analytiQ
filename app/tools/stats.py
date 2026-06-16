@@ -22,6 +22,12 @@ def run_stats(df: pd.DataFrame, analysis_type: str, **kwargs) -> dict:
         return _anova(df, **kwargs)
     elif analysis_type == "normality":
         return _normality(df, **kwargs)
+    elif analysis_type == "mannwhitney":
+        return _mannwhitney(df, **kwargs)
+    elif analysis_type == "kruskal":
+        return _kruskal(df, **kwargs)
+    elif analysis_type == "check_assumptions":
+        return check_assumptions(df, **kwargs)
     else:
         return {"error": f"Unknown analysis type: {analysis_type}"}
 
@@ -175,3 +181,125 @@ def run_topn(df: pd.DataFrame, group_col: str,
         "top_group": str(top_n.index[0]),
         "top_value": float(top_n.iloc[0])
     }
+
+def _mannwhitney(df: pd.DataFrame, numeric_col: str,
+                 group_col: str, **kwargs) -> dict:
+    groups = df[group_col].dropna().unique()
+    if len(groups) != 2:
+        return {"error": "Mann-Whitney requires exactly 2 groups"}
+
+    g1 = df[df[group_col] == groups[0]][numeric_col].dropna()
+    g2 = df[df[group_col] == groups[1]][numeric_col].dropna()
+
+    stat, p_value = stats.mannwhitneyu(g1, g2, alternative="two-sided")
+
+    return {
+        "analysis": "mann_whitney",
+        "group_col": group_col,
+        "numeric_col": numeric_col,
+        "group1": {"name": str(groups[0]), "median": round(float(g1.median()), 4)},
+        "group2": {"name": str(groups[1]), "median": round(float(g2.median()), 4)},
+        "statistic": round(float(stat), 4),
+        "p_value": round(float(p_value), 6),
+        "significant": bool(p_value < 0.05),
+        "interpretation": (
+            f"There IS a significant difference in {numeric_col} between "
+            f"{groups[0]} and {groups[1]} (p={round(float(p_value), 4)})"
+            if p_value < 0.05 else
+            f"There is NO significant difference in {numeric_col} between "
+            f"{groups[0]} and {groups[1]} (p={round(float(p_value), 4)})"
+        ),
+        "note": "Mann-Whitney U used because data is not normally distributed"
+    }
+
+
+def _kruskal(df: pd.DataFrame, numeric_col: str,
+             group_col: str, **kwargs) -> dict:
+    groups = df[group_col].dropna().unique()
+    if len(groups) < 3:
+        return {"error": "Kruskal-Wallis requires at least 3 groups"}
+
+    group_data = [df[df[group_col] == g][numeric_col].dropna()
+                  for g in groups]
+    stat, p_value = stats.kruskal(*group_data)
+
+    group_medians = {
+        str(g): round(float(df[df[group_col] == g][numeric_col].median()), 4)
+        for g in groups
+    }
+
+    return {
+        "analysis": "kruskal_wallis",
+        "group_col": group_col,
+        "numeric_col": numeric_col,
+        "group_medians": group_medians,
+        "statistic": round(float(stat), 4),
+        "p_value": round(float(p_value), 6),
+        "significant": bool(p_value < 0.05),
+        "interpretation": (
+            f"There IS a significant difference in {numeric_col} across "
+            f"{group_col} groups (p={round(float(p_value), 4)})"
+            if p_value < 0.05 else
+            f"There is NO significant difference in {numeric_col} across "
+            f"{group_col} groups (p={round(float(p_value), 4)})"
+        ),
+        "note": "Kruskal-Wallis used because data is not normally distributed"
+    }
+
+
+def check_assumptions(df: pd.DataFrame, numeric_col: str,
+                      group_col: str = None) -> dict:
+    """
+    Checks statistical assumptions before running tests.
+    Returns recommended test based on data properties.
+    """
+    col_data = df[numeric_col].dropna()
+    results = {}
+
+    # Normality check
+    if len(col_data) >= 3:
+        stat, p_norm = stats.shapiro(col_data)
+        results["normality"] = {
+            "is_normal": bool(p_norm > 0.05),
+            "p_value": round(float(p_norm), 4),
+            "test": "Shapiro-Wilk"
+        }
+
+    # Group specific checks
+    if group_col and group_col in df.columns:
+        groups = df[group_col].dropna().unique()
+        n_groups = len(groups)
+
+        # Levene's test for equal variances
+        group_data = [df[df[group_col] == g][numeric_col].dropna()
+                      for g in groups]
+        if len(group_data) >= 2:
+            lev_stat, lev_p = stats.levene(*group_data)
+            results["equal_variances"] = {
+                "equal": bool(lev_p > 0.05),
+                "p_value": round(float(lev_p), 4),
+                "test": "Levene"
+            }
+
+        is_normal = results.get("normality", {}).get("is_normal", True)
+        equal_var = results.get("equal_variances", {}).get("equal", True)
+
+        if n_groups == 2:
+            if is_normal and equal_var:
+                results["recommended_test"] = "ttest"
+                results["reason"] = "Data is normal with equal variances — use Independent T-test"
+            elif is_normal and not equal_var:
+                results["recommended_test"] = "ttest_welch"
+                results["reason"] = "Data is normal but unequal variances — use Welch T-test"
+            else:
+                results["recommended_test"] = "mannwhitney"
+                results["reason"] = "Data is not normal — use Mann-Whitney U (non-parametric)"
+        else:
+            if is_normal and equal_var:
+                results["recommended_test"] = "anova"
+                results["reason"] = "Data is normal with equal variances — use ANOVA"
+            else:
+                results["recommended_test"] = "kruskal"
+                results["reason"] = "Data is not normal — use Kruskal-Wallis (non-parametric)"
+
+    return results

@@ -14,7 +14,7 @@ from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 
 from app.tools.eda import run_eda
-from app.tools.stats import run_stats, run_aggregation, run_topn
+from app.tools.stats import run_stats, run_aggregation, run_topn, check_assumptions
 from app.tools.viz import run_viz
 from app.prompts.system import SYSTEM_PROMPT
 
@@ -60,10 +60,10 @@ def create_tools(df: pd.DataFrame):
         group_col: str = ""
     ) -> dict:
         """Run statistical analysis on the dataset.
-        analysis_type: correlation | ttest | anova | normality
+        analysis_type: correlation | ttest | anova | normality | mannwhitney | kruskal
         numeric_col: the numeric column to analyze
-        group_col: categorical column to group by (required for ttest and anova)
-        Use ttest for 2 groups, anova for 3+ groups.
+        group_col: categorical column to group by (required for ttest,anova, mannwhitney, kruskal)
+        IMPORTANT: Always run check_assumptions_tool first before choosing between ttest/mannwhitney or anova/kruskal.
         """
         params = {"analysis_type": analysis_type}
         if numeric_col:
@@ -132,8 +132,22 @@ def create_tools(df: pd.DataFrame):
         """
         return run_topn(df, group_col, numeric_col, n, agg)
     
+    @tool
+    def check_assumptions_tool(
+        numeric_col: str,
+        group_col: str = ""
+    ) -> dict:
+        """Check statistical assumptions before running a test.
+        Always call this before running ttest, anova, mannwhitney, or kruskal
+        when the user asks about differences between groups.
+        numeric_col: the numeric column to test
+        group_col: the categorical column defining groups
+        Returns the recommended test to use based on normality and variance checks.
+        """
+        return check_assumptions(df, numeric_col, group_col if group_col else None)
+    
 
-    return [run_eda_tool, run_stats_tool, run_aggregation_tool, run_viz_tool, run_topn_tool]
+    return [run_eda_tool, run_stats_tool, run_aggregation_tool, run_viz_tool, run_topn_tool, check_assumptions_tool]
 
 
 # ── Dataset Context ────────────────────────────────────────────────────────────
@@ -191,6 +205,7 @@ TOOL_NAME_MAP = {
     "run_stats_tool": "run_stats",
     "run_aggregation_tool": "run_aggregation",
     "run_viz_tool": "run_viz",
+    "check_assumptions_tool": "check_assumptions"
 }
 
 
