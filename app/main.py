@@ -37,6 +37,8 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "df" not in st.session_state:
     st.session_state.df = None
+if "provider" not in st.session_state:
+    st.session_state.provider = "groq"
 
 # ── Sidebar: file upload + dataset preview ────────────────────────────────────
 with st.sidebar:
@@ -134,7 +136,8 @@ else:
                     result = run_agent(
                         user_query=user_input,
                         df=df,
-                        chat_history=st.session_state.chat_history[:-1]
+                        chat_history=st.session_state.chat_history[:-1],
+                        provider=st.session_state.get("provider", "gemini")
                     )
                 except Exception as e:
                     error_msg = str(e)

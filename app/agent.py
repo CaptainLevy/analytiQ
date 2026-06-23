@@ -29,18 +29,58 @@ class AgentState(TypedDict):
 
 # ── LLM ───────────────────────────────────────────────────────────────────────
 
-def load_llm():
+def load_llm(provider: str = "groq"):
     try:
         import streamlit as st
-        api_key = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
+        groq_key = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
+        google_key = st.secrets.get("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY")
     except Exception:
-        api_key = os.getenv("GROQ_API_KEY")
-    
-    return ChatGroq(
-        api_key=api_key,
-        model="llama-3.1-8b-instant",
-        temperature=0
+        groq_key = os.getenv("GROQ_API_KEY")
+        google_key = os.getenv("GOOGLE_API_KEY")
+
+    if provider == "gemini":
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        return ChatGoogleGenerativeAI(
+            model="gemini-2.0-flash",
+            google_api_key=google_key,
+            temperature=0
+        )
+    else:
+        return ChatGroq(
+            api_key=groq_key,
+            model="llama-3.3-70b-versatile",
+            temperature=0
+        )
+
+
+def build_agent(df: pd.DataFrame, provider: str = "groq"):
+    tools = create_tools(df)
+    llm = load_llm(provider).bind_tools(tools)
+
+    def agent_node(state: AgentState):
+        response = llm.invoke(state["messages"])
+        return {"messages": [response]}
+
+    def should_continue(state: AgentState) -> Literal["tools", "end"]:
+        last_message = state["messages"][-1]
+        if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+            return "tools"
+        return "end"
+
+    tool_node = ToolNode(tools)
+
+    graph = StateGraph(AgentState)
+    graph.add_node("agent", agent_node)
+    graph.add_node("tools", tool_node)
+    graph.set_entry_point("agent")
+    graph.add_conditional_edges(
+        "agent",
+        should_continue,
+        {"tools": "tools", "end": END}
     )
+    graph.add_edge("tools", "agent")
+
+    return graph.compile()
 
 
 # ── Tool Factory ───────────────────────────────────────────────────────────────
@@ -62,7 +102,7 @@ def create_tools(df: pd.DataFrame):
         """Run statistical analysis on the dataset.
         analysis_type: correlation | ttest | anova | normality | mannwhitney | kruskal
         numeric_col: the numeric column to analyze
-        group_col: categorical column to group by (required for ttest,anova, mannwhitney, kruskal)
+        group_col: categorical column to group by (required for ttest, anova, mannwhitney, kruskal)
         IMPORTANT: Always run check_assumptions_tool first before choosing between ttest/mannwhitney or anova/kruskal.
         """
         params = {"analysis_type": analysis_type}
@@ -97,10 +137,10 @@ def create_tools(df: pd.DataFrame):
         color_col: str = ""
     ) -> dict:
         """Create a visualization.
-        chart_type: histogram | bar | scatter | correlation_heatmap | boxplot | line | pie
+        chart_type: histogram | bar | scatter | correlation_heatmap | boxplot | line | pie | pivot_heatmap
         numeric_col: for histogram and boxplot
         group_col: for bar chart and boxplot grouping
-        x_col, y_col: for scatter plot
+        x_col, y_col: for scatter/line plot
         color_col: optional color grouping for scatter
         """
         params = {"chart_type": chart_type}
@@ -115,6 +155,7 @@ def create_tools(df: pd.DataFrame):
         if color_col:
             params["color_col"] = color_col
         return run_viz(df, **params)
+
     @tool
     def run_topn_tool(
         group_col: str,
@@ -131,7 +172,7 @@ def create_tools(df: pd.DataFrame):
         'which 3 categories have lowest profit'.
         """
         return run_topn(df, group_col, numeric_col, n, agg)
-    
+
     @tool
     def check_assumptions_tool(
         numeric_col: str,
@@ -145,9 +186,9 @@ def create_tools(df: pd.DataFrame):
         Returns the recommended test to use based on normality and variance checks.
         """
         return check_assumptions(df, numeric_col, group_col if group_col else None)
-    
 
-    return [run_eda_tool, run_stats_tool, run_aggregation_tool, run_viz_tool, run_topn_tool, check_assumptions_tool]
+    return [run_eda_tool, run_stats_tool, run_aggregation_tool,
+            run_viz_tool, run_topn_tool, check_assumptions_tool]
 
 
 # ── Dataset Context ────────────────────────────────────────────────────────────
@@ -166,38 +207,6 @@ DATASET OVERVIEW:
 """
 
 
-# ── Graph Builder ──────────────────────────────────────────────────────────────
-
-def build_agent(df: pd.DataFrame):
-    tools = create_tools(df)
-    llm = load_llm().bind_tools(tools)
-
-    def agent_node(state: AgentState):
-        response = llm.invoke(state["messages"])
-        return {"messages": [response]}
-
-    def should_continue(state: AgentState) -> Literal["tools", "end"]:
-        last_message = state["messages"][-1]
-        if hasattr(last_message, "tool_calls") and last_message.tool_calls:
-            return "tools"
-        return "end"
-
-    tool_node = ToolNode(tools)
-
-    graph = StateGraph(AgentState)
-    graph.add_node("agent", agent_node)
-    graph.add_node("tools", tool_node)
-    graph.set_entry_point("agent")
-    graph.add_conditional_edges(
-        "agent",
-        should_continue,
-        {"tools": "tools", "end": END}
-    )
-    graph.add_edge("tools", "agent")
-
-    return graph.compile()
-
-
 # ── Tool Name Normalizer ───────────────────────────────────────────────────────
 
 TOOL_NAME_MAP = {
@@ -205,6 +214,7 @@ TOOL_NAME_MAP = {
     "run_stats_tool": "run_stats",
     "run_aggregation_tool": "run_aggregation",
     "run_viz_tool": "run_viz",
+    "run_topn_tool": "run_topn",
     "check_assumptions_tool": "check_assumptions"
 }
 
@@ -214,9 +224,9 @@ TOOL_NAME_MAP = {
 def run_agent(
     user_query: str,
     df: pd.DataFrame,
-    chat_history: list
+    chat_history: list,
+    provider: str = "groq"
 ) -> dict:
-
     dataset_context = build_dataset_context(df)
     system_content = SYSTEM_PROMPT + "\n\n" + dataset_context
 
@@ -230,25 +240,21 @@ def run_agent(
 
     messages.append(HumanMessage(content=user_query))
 
-    agent = build_agent(df)
+    agent = build_agent(df, provider)
     result = agent.invoke({"messages": messages})
 
-    # Extract final text response
     final_message = result["messages"][-1]
     final_text = final_message.content if hasattr(final_message, "content") else str(final_message)
 
-    # Extract chart and tools used from message history
     chart_json = None
     tools_used = []
 
     for msg in result["messages"]:
-        # Collect tool names from AI tool calls
         if hasattr(msg, "tool_calls") and msg.tool_calls:
             for tc in msg.tool_calls:
                 raw_name = tc["name"]
                 tools_used.append(TOOL_NAME_MAP.get(raw_name, raw_name))
 
-        # Extract chart from tool results
         if isinstance(msg, ToolMessage):
             try:
                 tool_result = json.loads(msg.content)
