@@ -80,7 +80,7 @@ The LLM (Groq `llama-3.3-70b-versatile`) acts as a **planner and synthesizer onl
 
 ## 📊 Evaluation
 
-AnalytiQ was evaluated on a 12-query benchmark testing tool routing accuracy:
+AnalytiQ was evaluated on a 15-query benchmark testing tool routing accuracy:
 
 | Category | Queries | Correct |
 |---|---|---|
@@ -90,7 +90,6 @@ AnalytiQ was evaluated on a 12-query benchmark testing tool routing accuracy:
 | Aggregation & Top-N | 3 | 3/3 |
 | Assumption Checking | 1 | 1/1 |
 | Multi-step Reasoning | 1 | 1/1 |
-| Mixed / Multi-step | 1 | 1/1 |
 | **Total** | **15** | **15/15 (100%)** |
 
 Run the benchmark yourself:
