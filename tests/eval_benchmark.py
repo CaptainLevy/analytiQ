@@ -98,6 +98,24 @@ test_cases = [
         "expected_tool": "run_viz",
         "check": lambda r: r["tool_used"] == "run_viz"
     },
+    {
+        "id": 13,
+        "query": "what are the top 3 categories by salses?"
+        "expected_tool": "run_topn",
+        "check": lambda r: r["tool_used"] == "run_topn"
+    },
+    {
+        "id": 14,
+        "query": "Is there a difference in sales between store types?",
+        "expected_tool": "check_assumptions or run_stats",
+        "check": lambda r: any(t in ["check_assumptions", "run_stats"] for t in r["tool_used"])
+    },
+    {
+        "id": 15,
+        "query": "Which region has the highest sales and is the difference statistically significant?",
+        "expected_tool": "multi_step",
+        "check": lambda r: len(r["tools_used"]) >= 2
+    }
 ]
 
 # ── Runner ────────────────────────────────────────────────────────────────────

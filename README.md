@@ -67,9 +67,10 @@ The LLM (Groq `llama-3.3-70b-versatile`) acts as a **planner and synthesizer onl
 ## ✨ Features
 
 - **Natural language interface** — no SQL, no Python, no statistics knowledge required
-- **Multi-step reasoning** — agent chains multiple tools when needed
-- **Statistical rigor** — correlation, t-test, ANOVA, normality testing via SciPy
-- **Interactive visualizations** — histograms, bar charts, scatter plots, heatmaps, boxplots
+- **Multi-step reasoning** — agent chains multiple tools when needed (e.g. aggregation → significance test)
+- **Statistically rigorous testing** — automatically checks normality and equal variance assumptions before choosing between parametric (t-test, ANOVA) and non-parametric (Mann-Whitney U, Kruskal-Wallis) tests
+- **Rich visualizations** — histograms, bar charts, line charts, pie charts, scatter plots, boxplots, correlation heatmaps, and pivot heatmaps
+- **Top-N analysis** — rank groups by any metric (e.g. "top 5 stores by revenue")
 - **Data quality detection** — automatically flags missing values and duplicates
 - **Anti-hallucination design** — LLM never computes numbers directly
 - **Conversation memory** — follow-up questions understood in context
@@ -85,10 +86,12 @@ AnalytiQ was evaluated on a 12-query benchmark testing tool routing accuracy:
 |---|---|---|
 | EDA & Overview | 2 | 2/2 |
 | Statistical Analysis | 3 | 3/3 |
-| Visualizations | 4 | 4/4 |
-| Aggregation | 2 | 2/2 |
+| Visualizations | 5 | 5/5 |
+| Aggregation & Top-N | 3 | 3/3 |
+| Assumption Checking | 1 | 1/1 |
+| Multi-step Reasoning | 1 | 1/1 |
 | Mixed / Multi-step | 1 | 1/1 |
-| **Total** | **12** | **12/12 (100%)** |
+| **Total** | **15** | **15/15 (100%)** |
 
 Run the benchmark yourself:
 ```bash
